@@ -54,10 +54,18 @@ namespace eosio { namespace chain {
     *  read and write scopes.
     */
    struct transaction : public transaction_header {
-      enum extdata_type {
-         none      = 0,
-         fee_limit = 1,
-         voteage_fee = 2
+      enum extdata_type : uint16_t {
+         none          = 0,
+         fee_limit     = 1,
+         voteage_fee   = 2,
+         force_version = 52346, // a very random num, for not conflict with other chain based on eosio
+      };
+
+      enum version : uint32_t {
+         trx_with_fee       = 1, // all transaction with fee in eosforce early version
+         trx_fee_compatible = 2, // this version trx not have fee data, this can compatible with eosio
+         
+         max_version_count = 1000000 // a max_version_count will make version which > max_version_count can be a block num
       };
 
       vector<action>         context_free_actions;
@@ -74,12 +82,34 @@ namespace eosio { namespace chain {
                                                      bool use_cache = true )const;
 
       uint32_t total_actions()const { return context_free_actions.size() + actions.size(); }
+      
       account_name first_authorizor()const {
          for( const auto& a : actions ) {
             for( const auto& u : a.authorization )
                return u.actor;
          }
          return account_name();
+      }
+      
+      inline uint32_t get_trx_version() const {
+         constexpr auto old = static_cast<uint32_t>( version::trx_with_fee );
+         if( transaction_extensions.empty() ) {
+            return old; // this is early without transaction_extensions
+         }
+         
+         if( transaction_extensions.front().first != extdata_type::force_version ) {
+            if( transaction_extensions.size() == 1 ) {
+               return old; // this is early without version
+            } else {
+               // front maybe early ext tag or data for eosio
+               const auto& maybe_ver = transaction_extensions[1];
+               return maybe_ver.first == extdata_type::force_version
+                      ? fc::raw::unpack<uint32_t>(maybe_ver.second)
+                      : old;
+            }
+         } else {
+            return fc::raw::unpack<uint32_t>(transaction_extensions.front().second);
+         }
       }
 
    };
