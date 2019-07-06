@@ -47,6 +47,11 @@ namespace eosio { namespace chain {
       bool verify_reference_block( const block_id_type& reference_block )const;
       void validate()const;
    };
+   
+   struct transaction_extension_datas {
+      extensions_type        transaction_extensions;
+      asset                  fee;
+   };
 
    /**
     *  A transaction consits of a set of messages which must all be applied or
@@ -68,10 +73,9 @@ namespace eosio { namespace chain {
          max_version_count = 1000000 // a max_version_count will make version which > max_version_count can be a block num
       };
 
-      vector<action>         context_free_actions;
-      vector<action>         actions;
-      extensions_type        transaction_extensions;
-      asset                  fee;
+      vector<action>              context_free_actions;
+      vector<action>              actions;
+      transaction_extension_datas ext_datas;
 
       transaction_id_type        id()const;
       digest_type                sig_digest( const chain_id_type& chain_id, const vector<bytes>& cfd = vector<bytes>() )const;
@@ -93,22 +97,22 @@ namespace eosio { namespace chain {
       
       inline uint32_t get_trx_version() const {
          constexpr auto old = static_cast<uint32_t>( version::trx_with_fee );
-         if( transaction_extensions.empty() ) {
+         if( ext_datas.transaction_extensions.empty() ) {
             return old; // this is early without transaction_extensions
          }
          
-         if( transaction_extensions.front().first != extdata_type::force_version ) {
-            if( transaction_extensions.size() == 1 ) {
+         if( ext_datas.transaction_extensions.front().first != extdata_type::force_version ) {
+            if( ext_datas.transaction_extensions.size() == 1 ) {
                return old; // this is early without version
             } else {
                // front maybe early ext tag or data for eosio
-               const auto& maybe_ver = transaction_extensions[1];
+               const auto& maybe_ver = ext_datas.transaction_extensions[1];
                return maybe_ver.first == extdata_type::force_version
                       ? fc::raw::unpack<uint32_t>(maybe_ver.second)
                       : old;
             }
          } else {
-            return fc::raw::unpack<uint32_t>(transaction_extensions.front().second);
+            return fc::raw::unpack<uint32_t>(ext_datas.transaction_extensions.front().second);
          }
       }
 
@@ -229,7 +233,8 @@ namespace eosio { namespace chain {
 
 FC_REFLECT( eosio::chain::transaction_header, (expiration)(ref_block_num)(ref_block_prefix)
                                               (max_net_usage_words)(max_cpu_usage_ms)(delay_sec) )
-FC_REFLECT_DERIVED( eosio::chain::transaction, (eosio::chain::transaction_header), (context_free_actions)(actions)(transaction_extensions)(fee) )
+FC_REFLECT( eosio::chain::transaction_extension_datas, (transaction_extensions)(fee) )                                      
+FC_REFLECT_DERIVED( eosio::chain::transaction, (eosio::chain::transaction_header), (context_free_actions)(actions)(ext_datas) )
 FC_REFLECT_DERIVED( eosio::chain::signed_transaction, (eosio::chain::transaction), (signatures)(context_free_data) )
 FC_REFLECT_ENUM( eosio::chain::packed_transaction::compression_type, (none)(zlib))
 FC_REFLECT( eosio::chain::packed_transaction, (signatures)(compression)(packed_context_free_data)(packed_trx) )

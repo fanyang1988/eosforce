@@ -1064,7 +1064,7 @@ struct controller_impl {
       try {
           //action check
           check_action(dtrx.actions);
-          asset fee_ext = dtrx.fee;
+          asset fee_ext = dtrx.ext_datas.fee;
 
          trx_context.init_for_deferred_trx( gtrx.published );
          if( !is_onfee_act ) {
@@ -1277,8 +1277,8 @@ struct controller_impl {
 
                if( !is_fee_limit ) {
                   const auto fee_required = txfee.get_required_fee(self, trx->trx);
-                  EOS_ASSERT(trx->trx.fee >= fee_required, transaction_exception, "set tx fee failed: no enough fee in trx");
-                  fee_ext = trx->trx.fee - fee_required;
+                  EOS_ASSERT(trx->trx.ext_datas.fee >= fee_required, transaction_exception, "set tx fee failed: no enough fee in trx");
+                  fee_ext = trx->trx.ext_datas.fee - fee_required;
                }
                EOS_ASSERT(txfee.check_transaction(trx->trx) == true, transaction_exception, "transaction include actor more than one");
 
@@ -1287,7 +1287,7 @@ struct controller_impl {
                if( !is_onfee_act ) {
                   try {
                      auto onftrx = std::make_shared<transaction_metadata>(
-                           get_on_fee_transaction(trx->trx.fee, trx->trx.actions[0].authorization[0].actor));
+                           get_on_fee_transaction(trx->trx.ext_datas.fee, trx->trx.actions[0].authorization[0].actor));
                      onftrx->implicit = true;
                      auto onftrace = push_transaction(onftrx, fc::time_point::maximum(),
                                                       config::default_min_transaction_cpu_usage, true);
@@ -1300,7 +1300,7 @@ struct controller_impl {
                   }
                } else {
                   asset fee_limit{ 0 };
-                  get_from_extensions(trx->trx.transaction_extensions, transaction::fee_limit, fee_limit);
+                  get_from_extensions(trx->trx.ext_datas.transaction_extensions, transaction::fee_limit, fee_limit);
                   trx_context.make_fee_act(fee_limit);
                }
             }

@@ -343,14 +343,14 @@ fc::variant push_transaction( signed_transaction& trx, int32_t extra_kcpu = 1000
       trx.max_net_usage_words = (tx_max_net_usage + 7)/8;
       trx.delay_sec = delaysec;
       if(!tx_max_fee_limit.empty()){
-         set_to_extensions(trx.transaction_extensions, transaction::fee_limit, to_asset(tx_max_fee_limit));
+         set_to_extensions(trx.ext_datas.transaction_extensions, transaction::fee_limit, to_asset(tx_max_fee_limit));
       }
       if (voteage_bp_name.length() > 0) {
-         set_to_extensions(trx.transaction_extensions, transaction::voteage_fee, account_name(voteage_bp_name));
+         set_to_extensions(trx.ext_datas.transaction_extensions, transaction::voteage_fee, account_name(voteage_bp_name));
       }
    }
    auto txfee = determine_required_fee(trx);
-   fc::from_variant(txfee, trx.fee);
+   fc::from_variant(txfee, trx.ext_datas.fee);
 
    if (!tx_skip_sign) {
       auto required_keys = determine_required_keys(trx);
@@ -2847,7 +2847,7 @@ int main( int argc, char** argv ) {
     //   determine_required_fee(trx);
       auto get_arg = fc::mutable_variant_object("transaction", trx);
       const auto& required_fee = call(get_required_fee, get_arg);
-      fc::from_variant( required_fee["required_fee"], trx.fee);
+      fc::from_variant( required_fee["required_fee"], trx.ext_datas.fee);
 
       fc::to_variant(trx, trx_var);
 
