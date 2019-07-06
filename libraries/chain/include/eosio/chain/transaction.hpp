@@ -48,17 +48,13 @@ namespace eosio { namespace chain {
       void validate()const;
    };
    
-   struct transaction_extension_datas {
-      extensions_type        transaction_extensions;
-      asset                  fee;
-   };
-
    /**
-    *  A transaction consits of a set of messages which must all be applied or
-    *  all are rejected. These messages have access to data within the given
-    *  read and write scopes.
+    *  A transaction_extension_datas consits of a set of 
+    *  Datas which maybe different between eosio in trx,
+    *  from now we will not add more diff data to trx,
+    *  but in early version we add fee in trx
     */
-   struct transaction : public transaction_header {
+   struct transaction_extension_datas {
       enum extdata_type : uint16_t {
          none          = 0,
          fee_limit     = 1,
@@ -72,7 +68,67 @@ namespace eosio { namespace chain {
          
          max_version_count = 1000000 // a max_version_count will make version which > max_version_count can be a block num
       };
+      
+      
+      extensions_type        transaction_extensions;
+      asset                  fee;
+      
+      inline bool is_need_fee() const {
+         return get_trx_version() == static_cast<uint32_t>( version::trx_with_fee );
+      }
+      
+      inline uint32_t get_trx_version() const {
+         constexpr auto old = static_cast<uint32_t>( version::trx_with_fee );
+         if( transaction_extensions.empty() ) {
+            return old; // this is early without transaction_extensions
+         }
+         
+         if( transaction_extensions.front().first != extdata_type::force_version ) {
+            if( transaction_extensions.size() == 1 ) {
+               return old; // this is early without version
+            } else {
+               // front maybe early ext tag or data for eosio
+               const auto& maybe_ver = transaction_extensions[1];
+               return maybe_ver.first == extdata_type::force_version
+                      ? fc::raw::unpack<uint32_t>(maybe_ver.second)
+                      : old;
+            }
+         } else {
+            return fc::raw::unpack<uint32_t>(transaction_extensions.front().second);
+         }
+      }
+     
+      template<typename T>
+      inline friend T& operator<<( T& ds, const transaction_extension_datas& msg ) {
+         // first pack extdata
+         fc::raw::pack( ds, msg.transaction_extensions );
 
+         // if pack fee for early version
+         if( msg.is_need_fee() ){
+            fc::raw::pack( ds, msg.fee );
+         }
+         return ds;
+      }
+
+      template<typename T>
+      inline friend T& operator>>( T& ds, transaction_extension_datas& msg ) {
+         // first unpack extdata
+         fc::raw::unpack( ds, msg.transaction_extensions );
+
+         // if unpack fee for early version
+         if( msg.is_need_fee() ){
+            fc::raw::unpack( ds, msg.fee );
+         }
+         return ds;
+      }
+   };
+
+   /**
+    *  A transaction consits of a set of messages which must all be applied or
+    *  all are rejected. These messages have access to data within the given
+    *  read and write scopes.
+    */
+   struct transaction : public transaction_header {
       vector<action>              context_free_actions;
       vector<action>              actions;
       transaction_extension_datas ext_datas;
@@ -94,28 +150,6 @@ namespace eosio { namespace chain {
          }
          return account_name();
       }
-      
-      inline uint32_t get_trx_version() const {
-         constexpr auto old = static_cast<uint32_t>( version::trx_with_fee );
-         if( ext_datas.transaction_extensions.empty() ) {
-            return old; // this is early without transaction_extensions
-         }
-         
-         if( ext_datas.transaction_extensions.front().first != extdata_type::force_version ) {
-            if( ext_datas.transaction_extensions.size() == 1 ) {
-               return old; // this is early without version
-            } else {
-               // front maybe early ext tag or data for eosio
-               const auto& maybe_ver = ext_datas.transaction_extensions[1];
-               return maybe_ver.first == extdata_type::force_version
-                      ? fc::raw::unpack<uint32_t>(maybe_ver.second)
-                      : old;
-            }
-         } else {
-            return fc::raw::unpack<uint32_t>(ext_datas.transaction_extensions.front().second);
-         }
-      }
-
    };
 
    struct signed_transaction : public transaction
@@ -231,9 +265,33 @@ namespace eosio { namespace chain {
 
 } } /// namespace eosio::chain
 
+namespace fc {
+   inline void to_variant(const eosio::chain::transaction_extension_datas& d, fc::variant& v) {
+          // first pack extdata
+          fc::to_variant( d.transaction_extensions, v );
+          
+          // if pack fee for early version
+          if( d.is_need_fee() ){
+             fc::to_variant( d.fee, v );
+             //ilog("to_variant need fee ${fee}" ,("fee", d.fee));
+          }
+   }
+
+   inline void from_variant(const fc::variant& v, eosio::chain::transaction_extension_datas& d) {
+          // first unpack extdata
+          fc::from_variant( v, d.transaction_extensions );
+          
+          // if unpack fee for early version
+          if( d.is_need_fee() ){
+             fc::from_variant( v, d.fee );
+             //ilog("from_variant need fee ${fee}" ,("fee", d.fee));
+          }
+   }
+} // fc
+FC_REFLECT_TYPENAME( eosio::chain::transaction_extension_datas )
+
 FC_REFLECT( eosio::chain::transaction_header, (expiration)(ref_block_num)(ref_block_prefix)
-                                              (max_net_usage_words)(max_cpu_usage_ms)(delay_sec) )
-FC_REFLECT( eosio::chain::transaction_extension_datas, (transaction_extensions)(fee) )                                      
+                                              (max_net_usage_words)(max_cpu_usage_ms)(delay_sec) )                    
 FC_REFLECT_DERIVED( eosio::chain::transaction, (eosio::chain::transaction_header), (context_free_actions)(actions)(ext_datas) )
 FC_REFLECT_DERIVED( eosio::chain::signed_transaction, (eosio::chain::transaction), (signatures)(context_free_data) )
 FC_REFLECT_ENUM( eosio::chain::packed_transaction::compression_type, (none)(zlib))

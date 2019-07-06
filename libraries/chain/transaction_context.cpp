@@ -443,7 +443,7 @@ namespace bacc = boost::accumulators;
 
       constexpr auto is_fee_voteage = [](const signed_transaction &trx, account_name &bp_name)  {
          if (trx.ext_datas.transaction_extensions.size() > 0) {
-            return get_from_extensions(trx.ext_datas.transaction_extensions, transaction::voteage_fee, bp_name);
+            return get_from_extensions(trx.ext_datas.transaction_extensions, transaction_extension_datas::voteage_fee, bp_name);
          }
          return false;
       };

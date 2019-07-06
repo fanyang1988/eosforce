@@ -1300,7 +1300,7 @@ struct controller_impl {
                   }
                } else {
                   asset fee_limit{ 0 };
-                  get_from_extensions(trx->trx.ext_datas.transaction_extensions, transaction::fee_limit, fee_limit);
+                  get_from_extensions(trx->trx.ext_datas.transaction_extensions, transaction_extension_datas::fee_limit, fee_limit);
                   trx_context.make_fee_act(fee_limit);
                }
             }

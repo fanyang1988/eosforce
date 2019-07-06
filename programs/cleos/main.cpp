@@ -343,10 +343,10 @@ fc::variant push_transaction( signed_transaction& trx, int32_t extra_kcpu = 1000
       trx.max_net_usage_words = (tx_max_net_usage + 7)/8;
       trx.delay_sec = delaysec;
       if(!tx_max_fee_limit.empty()){
-         set_to_extensions(trx.ext_datas.transaction_extensions, transaction::fee_limit, to_asset(tx_max_fee_limit));
+         set_to_extensions(trx.ext_datas.transaction_extensions, transaction_extension_datas::fee_limit, to_asset(tx_max_fee_limit));
       }
       if (voteage_bp_name.length() > 0) {
-         set_to_extensions(trx.ext_datas.transaction_extensions, transaction::voteage_fee, account_name(voteage_bp_name));
+         set_to_extensions(trx.ext_datas.transaction_extensions, transaction_extension_datas::voteage_fee, account_name(voteage_bp_name));
       }
    }
    auto txfee = determine_required_fee(trx);
