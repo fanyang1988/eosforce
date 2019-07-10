@@ -151,6 +151,23 @@ namespace eosio { namespace chain {
          return account_name();
       }
    };
+   
+   struct transaction_early_version : public transaction_header {
+      explicit transaction_early_version( const transaction& trx )
+         : transaction_header( trx )
+         , context_free_actions( trx.context_free_actions )
+         , actions( trx.actions )
+         , transaction_extensions( trx.ext_datas.transaction_extensions )
+         , fee( trx.ext_datas.fee ) {}
+         
+      transaction_early_version( const transaction_early_version& ) = default;
+      ~transaction_early_version() = default;
+      
+      vector<action>         context_free_actions;
+      vector<action>         actions;
+      extensions_type        transaction_extensions;
+      asset                  fee;
+   };
 
    struct signed_transaction : public transaction
    {
@@ -291,7 +308,9 @@ namespace fc {
 FC_REFLECT_TYPENAME( eosio::chain::transaction_extension_datas )
 
 FC_REFLECT( eosio::chain::transaction_header, (expiration)(ref_block_num)(ref_block_prefix)
-                                              (max_net_usage_words)(max_cpu_usage_ms)(delay_sec) )                    
+                                              (max_net_usage_words)(max_cpu_usage_ms)(delay_sec) )     
+FC_REFLECT_DERIVED( eosio::chain::transaction_early_version, (eosio::chain::transaction_header), 
+                    (context_free_actions)(actions)(transaction_extensions)(fee) )               
 FC_REFLECT_DERIVED( eosio::chain::transaction, (eosio::chain::transaction_header), (context_free_actions)(actions)(ext_datas) )
 FC_REFLECT_DERIVED( eosio::chain::signed_transaction, (eosio::chain::transaction), (signatures)(context_free_data) )
 FC_REFLECT_ENUM( eosio::chain::packed_transaction::compression_type, (none)(zlib))
