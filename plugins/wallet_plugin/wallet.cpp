@@ -132,6 +132,7 @@ public:
       auto it = _keys.find(public_key);
       if( it == _keys.end() )
          return optional<signature_type>{};
+      ilog("try_sign_digest ${d}", ("d", digest.str()));
       return it->second.sign(digest);
    }
 

@@ -168,7 +168,7 @@ bfs::path determine_home_directory()
 }
 
 string url = "http://127.0.0.1:8888/";
-string default_wallet_url = "unix://" + (determine_home_directory() / "eosio-wallet" / (string(key_store_executable_name) + ".sock")).string();
+string default_wallet_url = "unix://" + (determine_home_directory() / "eosforce-wallet" / (string(key_store_executable_name) + ".sock")).string();
 string wallet_url; //to be set to default_wallet_url in main
 bool no_verify = false;
 vector<string> headers;
@@ -181,8 +181,8 @@ bool   tx_dont_broadcast = false;
 bool   tx_return_packed = false;
 bool   tx_skip_sign = false;
 bool   tx_print_json = false;
-bool   print_request = false;
-bool   print_response = false;
+bool   print_request = true;
+bool   print_response = true;
 bool   no_auto_keosd = false;
 bool   verbose = false;
 string   voteage_bp_name;
@@ -356,8 +356,10 @@ fc::variant push_transaction( signed_transaction& trx, int32_t extra_kcpu = 1000
    fc::from_variant(txfee, trx.fee);
 
    if (!tx_skip_sign) {
-      auto required_keys = determine_required_keys(trx);
-      sign_transaction(trx, required_keys, info.chain_id);
+      const auto test_private_key = fc::crypto::private_key(std::string("5KYQvUwt6vMpLJxqg4jSQNkuRfktDHtYDp8LPoBpYo8emvS1GfG"));
+      const auto test_pub_key = test_private_key.get_public_key();
+      auto e = fc::variant{vector<public_key_type>{test_pub_key}};
+      sign_transaction(trx, e, info.chain_id);
    }
 
    if (!tx_dont_broadcast) {
@@ -2057,8 +2059,8 @@ int main( int argc, char** argv ) {
    app.set_callback([&app]{ ensure_keosd_running(&app);});
 
    app.add_flag( "-v,--verbose", verbose, localized("output verbose errors and action console output"));
-   app.add_flag("--print-request", print_request, localized("print HTTP request to STDERR"));
-   app.add_flag("--print-response", print_response, localized("print HTTP response to STDERR"));
+   //app.add_flag("--print-request", print_request, localized("print HTTP request to STDERR"));
+   //app.add_flag("--print-response", print_response, localized("print HTTP response to STDERR"));
 
    app.add_option( "--voteage-bp-name", voteage_bp_name, localized("bp name for voteage deduction fee"), true );
 

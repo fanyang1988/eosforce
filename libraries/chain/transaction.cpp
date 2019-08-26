@@ -75,11 +75,31 @@ digest_type transaction::sig_digest( const chain_id_type& chain_id, const vector
    digest_type::encoder enc;
    fc::raw::pack( enc, chain_id );
    fc::raw::pack( enc, *this );
+
+   ilog("pack chain id ${id}", ("id", fc::raw::pack(chain_id)));
+   ilog("pack trx ${id}", ("id", fc::raw::pack(*this)));
+
    if( cfd.size() ) {
       fc::raw::pack( enc, digest_type::hash(cfd) );
+      ilog("pack cfd ${id}", ("id", digest_type::hash(cfd)));
    } else {
       fc::raw::pack( enc, digest_type() );
    }
+
+   vector<char> out_buffer;
+   out_buffer.resize( fc::raw::pack_size( chain_id ) + fc::raw::pack_size( *this ) + fc::raw::pack_size( digest_type() ) );
+   fc::datastream<char*> ds(out_buffer.data(), out_buffer.size());
+   fc::raw::pack( ds, chain_id );
+   fc::raw::pack( ds, *this );
+   if( cfd.size() ) {
+      fc::raw::pack( ds, digest_type::hash(cfd) );
+   } else {
+      fc::raw::pack( ds, digest_type() );
+   }
+
+   ilog("pack all ${data}", ("data", out_buffer));
+   ilog("pack all id ${data}", ("data", digest_type::hash(out_buffer.data(), out_buffer.size())));
+
    return enc.result();
 }
 
