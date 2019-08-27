@@ -265,8 +265,8 @@ if [ "$ARCH" == "Darwin" ]; then
 fi
 
 # Cleanup old installation
-. ./scripts/full_uninstaller.sh $NONINTERACTIVE
-if [ $? -ne 0 ]; then exit -1; fi # Stop if exit from script is not 0
+#. ./scripts/full_uninstaller.sh $NONINTERACTIVE
+#if [ $? -ne 0 ]; then exit -1; fi # Stop if exit from script is not 0
 
 pushd $SRC_LOCATION &> /dev/null
 . "$FILE" $NONINTERACTIVE # Execute OS specific build file
